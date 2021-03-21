@@ -2,20 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\LoginConfirm;
+use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
+    public $userInfo;
+
     /**
      * Create a new AuthController instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(User $userInfo)
     {
-        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->userInfo = $userInfo;
     }
 
     /**
@@ -27,9 +31,16 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
-
+        $credentials = $request->only('name', 'password');
+        $user = $this->userInfo;
         if ($token = $this->guard()->attempt($credentials)) {
+
+            $data = ['firstname' => $this->userInfo->name];
+            Mail::send('user.mail', $data, function ($message) use ($user) {
+                $message->to('minhdt.vietnam@gmail.com', 'John Doe')
+                    ->subject('Test subkect mail laravel');
+            });
+
             return $this->respondWithToken($token);
         }
 
@@ -80,7 +91,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => $this->guard()->factory()->getTTL() * 60
+            'expires_in' => $this->guard()->factory()->getTTL() * 24
         ]);
     }
 
