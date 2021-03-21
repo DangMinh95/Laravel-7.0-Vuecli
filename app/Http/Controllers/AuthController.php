@@ -2,20 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\LoginConfirm;
+use App\Http\Requests\RegisterRequest;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
+    public $userInfo;
+
     /**
      * Create a new AuthController instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(User $userInfo)
     {
-        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->userInfo = $userInfo;
+    }
+
+    /**
+     * Register account
+     *
+     * @param  \Illuminate\Http\Request  $request
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function register(RegisterRequest $request)
+    {
+        $credentials = $request->only('name', 'password');
+        $credentials['password'] = Hash::make($credentials['password']);
+        $this->userInfo->create($credentials);
+
+        return response()->json(['message' => 'Successfully register']);
     }
 
     /**
@@ -27,23 +49,16 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        $credentials = $request->only('name', 'password');
 
-        if ($token = $this->guard()->attempt($credentials)) {
+        if ($token = JWTAuth::attempt($credentials)) {
+            $user = Auth::user();
+            event(new LoginConfirm($user));
+
             return $this->respondWithToken($token);
         }
 
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-
-    /**
-     * Get the authenticated User
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function me()
-    {
-        return response()->json($this->guard()->user());
+        return response()->json(['error' => 'Unauthorized']);
     }
 
     /**
@@ -53,19 +68,7 @@ class AuthController extends Controller
      */
     public function logout()
     {
-        $this->guard()->logout();
-
         return response()->json(['message' => 'Successfully logged out']);
-    }
-
-    /**
-     * Refresh a token.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function refresh()
-    {
-        return $this->respondWithToken($this->guard()->refresh());
     }
 
     /**
@@ -79,18 +82,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => $this->guard()->factory()->getTTL() * 60
+            'token_type' => 'bearer'
         ]);
-    }
-
-    /**
-     * Get the guard to be used during authentication.
-     *
-     * @return \Illuminate\Contracts\Auth\Guard
-     */
-    public function guard()
-    {
-        return Auth::guard();
     }
 }

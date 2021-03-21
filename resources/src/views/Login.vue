@@ -1,15 +1,15 @@
 <template>
-  <div class="home">
+  <div>
     <LoginForm></LoginForm>
   </div>
 </template>
 
 <script>
-import LoginForm from '../components/LoginForm'
+import LoginForm from "../components/LoginForm";
 export default {
-  name: 'Home',
+  name: "Login",
   components: {
-    LoginForm
-  }
-}
+    LoginForm,
+  },
+};
 </script>
