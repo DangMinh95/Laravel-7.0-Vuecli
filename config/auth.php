@@ -9,12 +9,12 @@ return [
     |
     | This option controls the default authentication "guard" and password
     | reset options for your application. You may change these defaults
-    | as required, but they're a perfect start for most applications.
+    | as required, but they're a perfect s  tart for most applications.
     |
     */
 
     'defaults' => [
-        'guard' => 'web',
+        'guard' => 'api',
         'passwords' => 'users',
     ],
 
@@ -42,7 +42,7 @@ return [
         ],
 
         'api' => [
-            'driver' => 'token',
+            'driver' => 'jwt',
             'provider' => 'users',
             'hash' => false,
         ],
@@ -68,7 +68,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => App\User::class,
+            'model' => App\Models\User::class,
         ],
 
         // 'users' => [

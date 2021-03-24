@@ -7,7 +7,7 @@
 <script>
 import LoginForm from '../components/LoginForm'
 export default {
-  name: 'Home',
+  name: 'Login',
   components: {
     LoginForm
   }
