@@ -2,20 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\LoginConfirm;
+use App\Http\Requests\RegisterRequest;
+use App\Mail\MailLoginConfirm;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
+    public $userInfo;
+
     /**
      * Create a new AuthController instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(User $userInfo)
     {
-        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->userInfo = $userInfo;
+    }
+
+    /**
+     * Register account
+     *
+     * @param  \Illuminate\Http\Request  $request
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function register(RegisterRequest $request)
+    {
+        $credentials = $request->only('name', 'password');
+        $credentials['password'] = Hash::make($credentials['password']);
+        $this->userInfo->create($credentials);
+
+        return response()->json(['message' => 'Successfully register']);
     }
 
     /**
@@ -27,13 +50,16 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        $credentials = $request->only('name', 'password');
 
         if ($token = $this->guard()->attempt($credentials)) {
+            $user = Auth::user();
+            event(new LoginConfirm($user));
+
             return $this->respondWithToken($token);
         }
 
-        return response()->json(['error' => 'Unauthorized'], 401);
+        return response()->json(['error' => 'Unauthorized']);
     }
 
     /**
@@ -80,7 +106,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => $this->guard()->factory()->getTTL() * 60
+            'expires_in' => $this->guard()->factory()->getTTL() * 60,
         ]);
     }
 
